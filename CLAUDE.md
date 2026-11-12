@@ -11,7 +11,7 @@
 - **Движки без Next.js.** `lib/capsule-engine` и `lib/forecast-engine` — чистый TypeScript без импортов из `next`, с юнит-тестами.
 - **Размеры и пороги — только в конфиге** (`data/steam-assets.ts`, правила проверок рядом). В коде движка чисел Valve нет.
 - **Тексты — только в `messages/{ru,en}.json`.** `tests/messages.test.ts` следит, чтобы ключи и плейсхолдеры совпадали.
-- **Данные Steam:** ассеты и теги — из `IStoreBrowseService/GetItems`, адреса CDN по шаблону не собирать (у файлов хеши в путях). HTML страниц магазина не парсить.
+- **Данные Steam — из `IStoreBrowseService/GetItems`** (`api.steampowered.com`): описание, скриншоты, трейлеры, теги, ассеты. `appdetails` с IP Cloudflare бывает отвечает 403 пачками — на него не опираться. Адреса CDN по шаблону не собирать (у файлов хеши в путях). HTML страниц магазина не парсить.
 
 ## Next.js 16 на Cloudflare
 
@@ -20,6 +20,8 @@
 - `cacheComponents` выключен. Страницы — статические (`generateStaticParams` + `setRequestLocale`), данные — из D1 через `lib/db.ts`.
 - Флаги — `lib/flags.ts` (`NEXT_PUBLIC_*`, задаются при сборке).
 - Проверка сборки под Workers: `npm run preview` (локальный workerd), размер — `npm run cf:size`.
+- **Предрендеренные страницы отдаются статикой мимо воркера** (`scripts/static-pages.mjs` после сборки): через Next.js они стоили 18–28 мс CPU при лимите 10 мс. На `/`, `/ru`, `/en` middleware не работает; выбор языка на `/` — статическая страница, cookie языка ставит переключатель. Новая статическая страница попадает туда автоматически, если в сборке есть её `.html`.
+- Локальные переменные — в `.env.development.local`, не в `.env.local`: `.env.local` попадает и в прод-сборку.
 
 ## Дизайн
 

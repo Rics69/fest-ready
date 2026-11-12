@@ -12,7 +12,7 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · next-intl (`/ru`, `/e
 
 ```bash
 npm install
-cp .env.example .env.local        # публичные переменные сборки и флаги
+cp .env.example .env.development.local   # переменные и флаги только для разработки (не .env.local — его читает и прод-сборка)
 cp .dev.vars.example .dev.vars    # секреты воркера (пока пусто)
 npm run db:migrate:local          # локальная база D1 в .wrangler/
 npm run dev                       # http://localhost:3000
@@ -27,6 +27,7 @@ npm run dev                       # http://localhost:3000
 | `npm run preview` | Сборка под Cloudflare и запуск в локальном workerd — ближе всего к продакшну |
 | `npm run cf:size` | Сборка и размер воркера (лимит бесплатного тарифа — 3 МБ в gzip) |
 | `npm run deploy` | Сборка и деплой вручную (обычно деплоит Workers Builds) |
+| `npm run cf:build` | Сборка OpenNext + статические `/`, `/ru`, `/en` мимо воркера (`scripts/static-pages.mjs`) |
 | `npm run cf-typegen` | Пересоздать `cloudflare-env.d.ts` после правки `wrangler.jsonc` |
 | `npm run db:migrate:local` / `db:migrate:remote` | Миграции D1 локально / на проде |
 | `npm run spike:steam` | Спайк C: запросы к Steam, качает капсулы в `fixtures/capsules/` |
@@ -49,13 +50,13 @@ npm run dev                       # http://localhost:3000
 
 Первая настройка:
 
-1. `npx wrangler login`
-2. `npx wrangler d1 create fest-ready` → вписать `database_id` в `wrangler.jsonc` → `npm run db:migrate:remote`
+1. ~~`npx wrangler login`~~, ~~база D1 `fest-ready`~~ (WEUR, миграция применена), ~~первый деплой~~ — сделано 12.11.2026, сайт: https://fest-ready.fest-ready.workers.dev
+2. Ручной деплой с этой машины: `NEXT_PUBLIC_SITE_URL=https://fest-ready.fest-ready.workers.dev npm run deploy` (флаги в продакшн-сборке по умолчанию выключены)
 3. Дашборд Cloudflare → Workers & Pages → Create → Import a repository → `Rics69/fest-ready`. Имя воркера — `fest-ready`, как в `wrangler.jsonc`.
-   - Build command: `npx opennextjs-cloudflare build`
+   - Build command: `npm run cf:build` (сборка OpenNext + `scripts/static-pages.mjs`, который отдаёт лендинг статикой мимо воркера)
    - Deploy command: `npx opennextjs-cloudflare deploy`
    - Non-production branch deploy command: `npx opennextjs-cloudflare upload`
-   - Build variables: `NEXT_PUBLIC_SITE_URL=https://fest-ready.<поддомен>.workers.dev` и флаги
+   - Build variables: `NEXT_PUBLIC_SITE_URL=https://fest-ready.fest-ready.workers.dev`, `NEXT_PUBLIC_PAYMENTS_MODE=off`, `NEXT_PUBLIC_FORECAST=off`, `NEXT_PUBLIC_KIT_EXPORT=off`
 4. Секреты (с фазы 5): `npx wrangler secret put ИМЯ`
 
 ## Структура

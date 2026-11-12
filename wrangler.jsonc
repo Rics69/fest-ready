@@ -20,8 +20,8 @@
     {
       "binding": "DB",
       "database_name": "fest-ready",
-      // Замените на id из `npx wrangler d1 create fest-ready`. Для --local подходит и этот заполнитель.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // Создана 12.11.2026, регион WEUR.
+      "database_id": "32243487-4f0d-40be-9bbd-90a4a55b5e31",
       "migrations_dir": "db/migrations",
     },
   ],

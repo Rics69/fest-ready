@@ -9,6 +9,15 @@ const LABELS: Record<Locale, { short: string; name: string }> = {
   en: { short: "EN", name: "English" },
 };
 
+/**
+ * Запоминаем выбор языка сами: /ru и /en отдаются статикой мимо воркера (scripts/static-pages.mjs),
+ * поэтому middleware next-intl на этих адресах не срабатывает и cookie не ставит.
+ * Имя cookie — как у next-intl по умолчанию, его читает middleware на «/».
+ */
+function rememberLocale(locale: Locale) {
+  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000; samesite=lax`;
+}
+
 export function LocaleSwitcher() {
   const current = useLocale();
   const pathname = usePathname();
@@ -24,6 +33,9 @@ export function LocaleSwitcher() {
             href={pathname}
             locale={locale}
             lang={locale}
+            // Статические страницы не отдают RSC — предзагрузка была бы лишним скачиванием HTML.
+            prefetch={false}
+            onClick={() => rememberLocale(locale)}
             title={LABELS[locale].name}
             aria-current={active ? "true" : undefined}
             className={
