@@ -44,7 +44,7 @@ npm run dev                       # http://localhost:3000
 | `NEXT_PUBLIC_PAYMENTS_MODE` | `mock` — тестовая касса, `rollypay` — настоящая, `off` — лист ожидания |
 | `NEXT_PUBLIC_FORECAST` | `on` / `off` — платный прогноз |
 | `NEXT_PUBLIC_KIT_EXPORT` | `on` / `off` — экспорт набора в полном разрешении |
-| `NEXT_PUBLIC_CF_BEACON_TOKEN` | Токен Cloudflare Web Analytics (дашборд → Web Analytics → Add a site). Пусто — без счётчика |
+| `NEXT_PUBLIC_CF_BEACON_TOKEN` | Токен Cloudflare Web Analytics. По умолчанию — сайт `fest-ready.fest-ready.workers.dev` (`lib/site.ts`); счётчик грузится только на адресе `NEXT_PUBLIC_SITE_URL` |
 
 ## Деплой
 
