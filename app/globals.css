@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/*
+ * Дизайн-токены FestReady.
+ * Одна тёмная тема: капсулы Steam живут на тёмном фоне, и превью должно выглядеть как в магазине.
+ * Палитра: нейтральные серые + один акцент (фиолетовый — не синий Valve, не жёлтый предупреждений).
+ * Исключение из «одного акцента» — три цвета итогов проверок: это продуктовая семантика, а не декор.
+ */
+:root {
+  color-scheme: dark;
+
+  --background: #0b0c0f;
+  --surface: #121419;
+  --surface-raised: #181b21;
+  --foreground: #eceef2;
+  --muted: #9097a3;
+  --subtle: #5d6470;
+  --border: #22262e;
+  --border-strong: #323843;
+
+  --accent: #a798ff;
+  --accent-hover: #bdb2ff;
+  --accent-soft: #1c1930;
+  --on-accent: #0f0b24;
+
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --stop: #f87171;
+
+  /* Свои кривые вместо встроенных: встроенные слишком вялые. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-stop: var(--stop);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Отклик на нажатие: всё, что нажимается, чуть «проседает». */
+@utility press {
+  transition-property: transform, color, background-color, border-color, opacity;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/*
+ * Появление первого экрана: один раз при загрузке, лёгкий подъём с прозрачности,
+ * элементы идут друг за другом с шагом 60 мс (--i задаётся в разметке).
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.rise-in {
+  animation: rise-in 520ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: none;
+  }
+}

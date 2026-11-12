@@ -1,0 +1,9 @@
+.next
+.open-next
+.wrangler
+node_modules
+cloudflare-env.d.ts
+package-lock.json
+.claude/skills
+skills-lock.json
+docs/source

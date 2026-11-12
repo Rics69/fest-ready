@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fest-ready",
+  // Свой worker.ts вместо .open-next/worker.js: в фазе 5 сюда добавится ежедневный cron для писем.
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "services": [
+    {
+      // Ссылка воркера на самого себя, нужна OpenNext. Имя должно совпадать с "name".
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "fest-ready",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fest-ready",
+      // Замените на id из `npx wrangler d1 create fest-ready`. Для --local подходит и этот заполнитель.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "db/migrations",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+  // Секреты (фаза 5): npx wrangler secret put ROLLYPAY_API_KEY | ROLLYPAY_SIGNING_SECRET | RESEND_API_KEY | UNLOCK_SECRET
+}

@@ -1,0 +1,6 @@
+{
+  // Отдельный воркер только для спайка C с IP Cloudflare. Не деплоится: запускается через `wrangler dev --remote`.
+  "name": "fest-ready-spike",
+  "main": "steam-worker.js",
+  "compatibility_date": "2026-11-01",
+}

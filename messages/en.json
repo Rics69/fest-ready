@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "title": "FestReady — a Steam capsule that reads, and a Next Fest wishlist forecast",
+    "description": "Build every Steam asset from your own art and see how many wishlists Next Fest can bring. Free capsule test at real sizes."
+  },
+  "header": {
+    "home": "FestReady — home",
+    "language": "Language"
+  },
+  "countdown": {
+    "days": "{count, plural, one {# day} other {# days}} until registration closes: {fest}",
+    "today": "Registration closes today: {fest}",
+    "closed": "Registration for the next Next Fest is closed"
+  },
+  "home": {
+    "eyebrow": "Steam Next Fest · February 2027",
+    "titleLead": "A capsule that reads at 120 px.",
+    "titleTail": "A wishlist forecast before the Next Fest deadline.",
+    "subtitle": "Build every Steam asset from your own art and see how many wishlists the festival can bring. Your files never leave your computer.",
+    "soon": "The free capsule test is coming to this page soon.",
+    "sizes": {
+      "title": "This is how Steam shows your capsule",
+      "body": "You draw the small capsule at 462×174, but in search, lists and wishlists players see it at 231×87, 184×69 and 120×45. If the title doesn't read at the smallest size, nobody clicks.",
+      "placeholder": "Your Game"
+    }
+  },
+  "footer": {
+    "disclaimer": "Not affiliated with Valve. Steam is a trademark of Valve Corporation."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to home"
+  }
+}

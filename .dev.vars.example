@@ -1,0 +1,3 @@
+# Секреты воркера. Локально: скопируйте в .dev.vars (файл в .gitignore).
+# В продакшне: npx wrangler secret put ИМЯ
+# Появятся в фазе 5: ROLLYPAY_API_KEY, ROLLYPAY_SIGNING_SECRET, RESEND_API_KEY, UNLOCK_SECRET

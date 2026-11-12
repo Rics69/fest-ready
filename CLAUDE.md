@@ -1,0 +1,33 @@
+# FestReady — правила проекта
+
+Капсулы Steam, которые читаются в поиске, и прогноз вишлистов Next Fest. RU и EN.
+
+- План по фазам и статус — [docs/ROADMAP.md](docs/ROADMAP.md). Итоги спайков и решения — [docs/decisions.md](docs/decisions.md). Исходные документы — `docs/source/` (бизнес-план там только локально: репозиторий публичный).
+- Перед коммитом: `npm run check` (линт, типы, тесты).
+
+## Нельзя нарушать
+
+- **Арт пользователя не уходит на сервер.** Вся работа с картинками — в браузере (Web Worker, OffscreenCanvas). Ни один запрос не несёт пикселей, в D1 — только выбор вариантов и числа анкеты.
+- **Движки без Next.js.** `lib/capsule-engine` и `lib/forecast-engine` — чистый TypeScript без импортов из `next`, с юнит-тестами.
+- **Размеры и пороги — только в конфиге** (`data/steam-assets.ts`, правила проверок рядом). В коде движка чисел Valve нет.
+- **Тексты — только в `messages/{ru,en}.json`.** `tests/messages.test.ts` следит, чтобы ключи и плейсхолдеры совпадали.
+- **Данные Steam:** ассеты и теги — из `IStoreBrowseService/GetItems`, адреса CDN по шаблону не собирать (у файлов хеши в путях). HTML страниц магазина не парсить.
+
+## Next.js 16 на Cloudflare
+
+- Это Next.js 16 — API могли измениться. Перед незнакомым API читать `node_modules/next/dist/docs/`.
+- `middleware.ts`, а не `proxy.ts`: proxy работает только в Node.js-рантайме, в OpenNext для Cloudflare это экспериментально.
+- `cacheComponents` выключен. Страницы — статические (`generateStaticParams` + `setRequestLocale`), данные — из D1 через `lib/db.ts`.
+- Флаги — `lib/flags.ts` (`NEXT_PUBLIC_*`, задаются при сборке).
+- Проверка сборки под Workers: `npm run preview` (локальный workerd), размер — `npm run cf:size`.
+
+## Дизайн
+
+- Одна тёмная тема, токены в `app/globals.css`, один акцент (фиолетовый). Зелёный, жёлтый, красный — только для итогов проверок.
+- Движение — по скиллу `emil-design-eng` (`.claude/skills`): анимируем только `transform` и `opacity`, свои кривые `--ease-out`, отклик на нажатие — утилита `press`, наведение — только под `(hover: hover)`, везде `prefers-reduced-motion`.
+- Адаптив от 360 px, без горизонтальной прокрутки.
+
+## Git
+
+- Коммиты от имени `rics` (настроено в `.git/config`). Без `Co-Authored-By` и любых упоминаний ИИ-помощника — ни в коммитах, ни в `package.json`, ни в описаниях PR.
+- Сообщения коммитов — по-русски, в стиле «Фаза N: что сделано».

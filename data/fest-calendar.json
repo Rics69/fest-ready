@@ -1,0 +1,23 @@
+{
+  "$comment": "Даты Steam Next Fest. Источник: https://partner.steamgames.com/doc/marketing/upcoming_events/nextfest/feb_2027. Часовой пояс дедлайнов Valve сверить на странице события перед запуском таймера.",
+  "fests": [
+    {
+      "id": "2027-02",
+      "name": { "ru": "Next Fest февраля 2027", "en": "Next Fest February 2027" },
+      "registrationCloses": "2027-01-10",
+      "allItemsDue": "2027-02-08",
+      "start": "2027-02-22",
+      "end": "2027-03-01",
+      "source": "https://partner.steamgames.com/doc/marketing/upcoming_events/nextfest/feb_2027"
+    },
+    {
+      "id": "2027-06",
+      "name": { "ru": "Next Fest июня 2027", "en": "Next Fest June 2027" },
+      "registrationCloses": null,
+      "allItemsDue": null,
+      "start": "2027-06-14",
+      "end": "2027-06-21",
+      "source": "https://partner.steamgames.com/doc/marketing/upcoming_events"
+    }
+  ]
+}
