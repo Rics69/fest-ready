@@ -53,3 +53,8 @@ next-env.d.ts
 
 # бизнес-план с финансами и стратегией — репозиторий публичный, держим только локально
 /docs/source/business-plan.md
+/fixtures/synthetic/
+/fixtures/manual/
+
+# модели и ядро распознавания текста — копируются из node_modules перед сборкой
+/public/vendor/

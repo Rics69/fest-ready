@@ -30,7 +30,8 @@ npm run dev                       # http://localhost:3000
 | `npm run cf:build` | Сборка OpenNext + статические `/`, `/ru`, `/en` мимо воркера (`scripts/static-pages.mjs`) |
 | `npm run cf-typegen` | Пересоздать `cloudflare-env.d.ts` после правки `wrangler.jsonc` |
 | `npm run db:migrate:local` / `db:migrate:remote` | Миграции D1 локально / на проде |
-| `npm run spike:steam` | Спайк C: запросы к Steam, качает капсулы в `fixtures/capsules/` |
+| `npm run calibrate` | Калибровка проверок капсулы: настоящие капсулы, испорченные версии и `fixtures/manual/` → таблица «ожидали / получили», рамки — в `scripts/spikes/out/calibration/` |
+| `npm run spike:steam` | Спайк C: запросы к Steam, качает капсулы в `fixtures/capsules/` (нужно для калибровки) |
 | `npm run spike:ocr` | Спайк B: распознавание названия на капсулах в разных размерах |
 | `npm run spike:steam:cf` | Спайк C с IP Cloudflare (`wrangler dev --remote`, нужен вход) |
 
@@ -43,6 +44,7 @@ npm run dev                       # http://localhost:3000
 | `NEXT_PUBLIC_PAYMENTS_MODE` | `mock` — тестовая касса, `rollypay` — настоящая, `off` — лист ожидания |
 | `NEXT_PUBLIC_FORECAST` | `on` / `off` — платный прогноз |
 | `NEXT_PUBLIC_KIT_EXPORT` | `on` / `off` — экспорт набора в полном разрешении |
+| `NEXT_PUBLIC_CF_BEACON_TOKEN` | Токен Cloudflare Web Analytics (дашборд → Web Analytics → Add a site). Пусто — без счётчика |
 
 ## Деплой
 
@@ -67,8 +69,11 @@ components/          шапка, подвал, блоки лендинга
 i18n/                маршрутизация и загрузка переводов next-intl
 messages/{ru,en}.json  все тексты интерфейса
 data/                конфиг ассетов Steam, календарь Next Fest
-lib/                 флаги, база, календарь; позже — capsule-engine и forecast-engine
+lib/capsule-engine/  движок капсул: масштаб, проверки, текст (Node и браузер), Web Worker, OCR
+lib/                 флаги, база, календарь, события
+data/check-rules.ts  пороги проверок и словарь запрещённого текста
 db/migrations/       SQL-миграции D1
+scripts/             калибровка, статические страницы, копирование tesseract в public/vendor/
 scripts/spikes/      спайки фазы 0
 tests/               тесты, не привязанные к одному модулю
 docs/                роадмап, решения, промпты демо-арта, исходные документы

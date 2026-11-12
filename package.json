@@ -4,7 +4,9 @@
   "private": true,
   "author": "rics",
   "scripts": {
+    "predev": "node scripts/copy-tesseract.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-tesseract.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -23,7 +25,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "spike:ocr": "node scripts/spikes/ocr.mjs",
     "spike:steam": "node scripts/spikes/steam.mjs",
-    "spike:steam:cf": "wrangler dev --remote -c scripts/spikes/wrangler.spike.jsonc"
+    "spike:steam:cf": "wrangler dev --remote -c scripts/spikes/wrangler.spike.jsonc",
+    "calibrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/calibrate.mjs"
   },
   "dependencies": {
     "next": "16.4.6",
@@ -34,6 +37,8 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.17",
     "@tailwindcss/turbopack": "^4.3.5",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/rus": "^1.0.0",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",

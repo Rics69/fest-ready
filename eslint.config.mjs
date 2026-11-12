@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     ".open-next/**",
     ".wrangler/**",
     "cloudflare-env.d.ts",
+    // Скопированные сборки tesseract.js (scripts/copy-tesseract.mjs):
+    "public/vendor/**",
   ]),
 ]);
 

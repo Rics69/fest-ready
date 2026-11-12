@@ -3,15 +3,15 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Countdown } from "@/components/landing/countdown";
-import { CapsuleSizes } from "@/components/landing/capsule-sizes";
+import { CapsuleTest } from "@/components/capsule-test/capsule-test";
 import { routing } from "@/i18n/routing";
 
 /** Порядковый номер в появлении первого экрана (см. .rise-in в globals.css). */
 const order = (i: number) => ({ "--i": i }) as CSSProperties;
 
 /**
- * Главная фазы 0: обещание, таймер до дедлайна и наглядно — в каком размере Steam показывает капсулу.
- * Тест капсулы встанет сюда в фазе 1, остальные блоки лендинга — в фазе 2.
+ * Главная фазы 1: обещание, таймер до дедлайна и бесплатный тест капсулы.
+ * Остальные блоки лендинга — в фазе 2.
  */
 export default async function Home({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
@@ -35,20 +35,17 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
           {t("subtitle")}
         </p>
         <div className="rise-in mt-8 flex flex-wrap items-center gap-3" style={order(3)}>
+          <a
+            href="#test"
+            className="press inline-flex min-h-11 items-center rounded-lg bg-accent px-5 text-[15px] font-medium text-on-accent hover:bg-accent-hover"
+          >
+            {t("cta")}
+          </a>
           <Countdown />
-          <span className="text-sm text-subtle">{t("soon")}</span>
         </div>
       </section>
 
-      <section aria-labelledby="sizes-title" className="mx-auto max-w-5xl px-4 pb-24">
-        <div className="rounded-2xl border border-border bg-surface p-6 sm:p-10">
-          <h2 id="sizes-title" className="text-lg font-medium">
-            {t("sizes.title")}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{t("sizes.body")}</p>
-          <CapsuleSizes />
-        </div>
-      </section>
+      <CapsuleTest />
     </>
   );
 }

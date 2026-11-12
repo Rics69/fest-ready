@@ -7,3 +7,4 @@ package-lock.json
 .claude/skills
 skills-lock.json
 docs/source
+public/vendor

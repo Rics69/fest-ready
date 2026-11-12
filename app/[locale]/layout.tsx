@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { Analytics } from "@/components/analytics";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { routing } from "@/i18n/routing";
@@ -22,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 /** Разделы переводов для клиентских компонентов. Остальные тексты рендерятся на сервере. */
-const CLIENT_NAMESPACES = ["header", "countdown"] as const;
+const CLIENT_NAMESPACES = ["header", "countdown", "capsuleTest"] as const;
 
 function pick<T extends Record<string, unknown>>(source: T, keys: readonly string[]): Partial<T> {
   return Object.fromEntries(keys.filter((k) => k in source).map((k) => [k, source[k]])) as Partial<T>;
@@ -74,6 +75,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </NextIntlClientProvider>
+        <Analytics />
       </body>
     </html>
   );

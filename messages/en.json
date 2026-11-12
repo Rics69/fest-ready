@@ -17,11 +17,86 @@
     "titleLead": "A capsule that reads at 120 px.",
     "titleTail": "A wishlist forecast before the Next Fest deadline.",
     "subtitle": "Build every Steam asset from your own art and see how many wishlists the festival can bring. Your files never leave your computer.",
-    "soon": "The free capsule test is coming to this page soon.",
-    "sizes": {
-      "title": "This is how Steam shows your capsule",
-      "body": "You draw the small capsule at 462×174, but in search, lists and wishlists players see it at 231×87, 184×69 and 120×45. If the title doesn't read at the smallest size, nobody clicks.",
-      "placeholder": "Your Game"
+    "cta": "Check my capsule — free"
+  },
+  "capsuleTest": {
+    "title": "Free capsule test",
+    "lead": "Drop your 462×174 small capsule — we'll show it at the sizes players see in search and wishlists and check it against Valve's rules.",
+    "drop": "Drop your capsule here",
+    "choose": "or choose a file",
+    "formats": "PNG or JPG · the file never leaves your computer",
+    "dropActive": "Release to check",
+    "decoding": "Opening the file…",
+    "decodeError": "Couldn't open the file. It needs to be a PNG or JPG image.",
+    "yourCapsule": "Your capsule",
+    "inSteam": "How Steam will show it",
+    "placeholder": "Your Game",
+    "ocrPending": "Looking for text on the capsule…",
+    "ocrFirstLoad": "Loading text recognition for the first time — a few seconds",
+    "ocrFailed": "Couldn't check the text on the capsule. The other checks are ready.",
+    "legendTitle": "title",
+    "legendText": "extra text",
+    "outline": "Outline the title",
+    "outlineAgain": "Outline again",
+    "outlineHint": "Draw a box around the title — with a mouse or a finger",
+    "outlineCancel": "Cancel",
+    "another": "Check another",
+    "summaryProblem": "Main issue",
+    "summaryOk": "No errors found — the capsule is ready for Steamworks",
+    "summaryOkAdvice": "No errors found. Below are tips that will help the capsule in search",
+    "levels": {
+      "error": "Error",
+      "warning": "Warning",
+      "advice": "Tip",
+      "ok": "Good"
+    },
+    "checks": {
+      "dimensions": {
+        "title": "Size",
+        "exact": "{size} — exactly what Steamworks requires",
+        "legacy": "{size} — the old small capsule size. Steamworks now expects exactly 462×174",
+        "otherAsset": "{size} — that's another Steam asset, not the small capsule. Showing how it would look cropped to 462×174",
+        "wrongSize": "{size} — the ratio is right, but Steamworks expects exactly 462×174",
+        "wrongRatio": "{size} — doesn't fit the 462×174 small capsule. Showing how it would look cropped"
+      },
+      "format": {
+        "title": "Format",
+        "ok": "{format}",
+        "unsupported": "Steamworks only accepts PNG and JPG"
+      },
+      "weight": {
+        "title": "File size",
+        "ok": "{kb} KB",
+        "heavy": "{mb, number} MB — over {max} MB. Save it as a JPG at 85–90% quality to avoid upload trouble"
+      },
+      "extraText": {
+        "title": "Extra text",
+        "ok": "No review scores, awards, discounts or calls to action found",
+        "found": "On the capsule: “{text}”. Valve bans review scores, awards, discounts and calls to action on capsules — this one will be rejected"
+      },
+      "logoWidth": {
+        "title": "Title size",
+        "ok": "The title spans {percent}% of the width",
+        "narrow": "The title spans {percent}% of the width. Steamworks recommends it nearly fill the small capsule — {min}% or more"
+      },
+      "contrast": {
+        "title": "Title contrast",
+        "ok": "{ratio, number}:1 — the title stands out from the background",
+        "low": "{ratio, number}:1 — below {min}:1. Darken the background behind the title or add an outline"
+      },
+      "readability": {
+        "title": "Legibility at 120×45",
+        "ok": "The title stays legible at the smallest size",
+        "small": "At 120×45 the title is {px} px tall — the letters blur together. Make it bigger",
+        "blurry": "At 120×45 the letters blend into the background: {ratio, number}:1 contrast",
+        "thin": "At 120×45 the strokes are thinner than a pixel — the letters fall apart. Use a bolder font",
+        "notFound": "We're not sure where the title is. Outline it to check its size, contrast and legibility"
+      },
+      "details": {
+        "title": "Fine detail",
+        "ok": "The art doesn't turn into noise at small sizes",
+        "busy": "Lots of fine detail: at 120×45 it turns into noise around the title"
+      }
     }
   },
   "footer": {
