@@ -160,7 +160,10 @@ for (const c of cases) {
   const by = Object.fromEntries(all.map((r) => [r.id, r]));
 
   const problems = all.filter((r) => r.level !== "ok").map((r) => `${r.id}:${r.code}`);
-  const fired = (id) => by[id] && by[id].level !== "ok";
+  // «Не нашли название, обведите» — не вердикт о читаемости, а просьба к человеку: срабатыванием не считаем.
+  const fired = (id) => by[id] && by[id].level !== "ok" && by[id].code !== "notFound";
+  const askedOutline = by.readability?.code === "notFound";
+  const falseAlarm = c.expect === "ok" && all.some((r) => r.level === "error" || r.level === "warning");
   const pass =
     c.expect === "ok"
       ? !all.some((r) => r.level === "error" || r.level === "warning")
@@ -170,7 +173,10 @@ for (const c of cases) {
 
   rows.push({
     case: c.name,
+    group: c.name.startsWith("manual/") ? "основатель" : "встроенные",
     expect: c.expect,
+    outline: askedOutline,
+    falseAlarm,
     pass: pass ? "✓" : "✗",
     problems: problems.join(", ") || "—",
     region: text.region ? `${Math.round(text.region.w)}×${Math.round(text.region.h)}` : "нет",
@@ -198,7 +204,35 @@ for (const c of cases) {
 }
 await worker.terminate();
 
-console.table(rows);
+const columns = ["case", "expect", "pass", "problems", "region", "contrast", "stroke120", "edges", "ocrMs"];
+const builtin = rows.filter((r) => r.group === "встроенные");
+const manual = rows.filter((r) => r.group === "основатель");
+console.log("Встроенный набор:");
+console.table(builtin, columns);
+if (manual.length) {
+  const misses = manual.filter((r) => r.pass !== "✓");
+  console.log(`Набор основателя — промахи (${misses.length}):`);
+  if (misses.length) console.table(misses, columns);
+}
+
+// Сводка по меткам: сколько поймали, сколько раз попросили обвести название, ложные тревоги.
+const LABELS = { ok: "нормальная", extraText: "лишний текст", readability: "нечитаемая", contrast: "низкий контраст" };
+const summary = [];
+for (const group of ["встроенные", "основатель"]) {
+  for (const [expect, title] of Object.entries(LABELS)) {
+    const set = rows.filter((r) => r.group === group && r.expect === expect);
+    if (!set.length) continue;
+    summary.push({
+      набор: group,
+      метка: title,
+      всего: set.length,
+      "как ожидали": set.filter((r) => r.pass === "✓").length,
+      "попросили обвести": set.filter((r) => r.outline).length,
+      "ложные тревоги": expect === "ok" ? set.filter((r) => r.falseAlarm).length : "",
+    });
+  }
+}
+console.table(summary);
 const failed = rows.filter((r) => r.pass !== "✓");
 console.log(`Итого: ${rows.length - failed.length} из ${rows.length} как ожидали. Рамки — в ${OUT}`);
 writeFileSync(join(OUT, "report.json"), JSON.stringify(rows, null, 2));

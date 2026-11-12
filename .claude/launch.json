@@ -4,14 +4,33 @@
     {
       "name": "dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "worker-preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "dev", "--port", "8787", "--ip", "127.0.0.1"],
+      "runtimeArgs": [
+        "wrangler",
+        "dev",
+        "--port",
+        "8787",
+        "--ip",
+        "127.0.0.1"
+      ],
       "port": 8787
+    },
+    {
+      "name": "label",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "capsules:label"
+      ],
+      "port": 4400
     }
   ]
 }

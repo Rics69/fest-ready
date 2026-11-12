@@ -31,6 +31,8 @@ npm run dev                       # http://localhost:3000
 | `npm run cf-typegen` | Пересоздать `cloudflare-env.d.ts` после правки `wrangler.jsonc` |
 | `npm run db:migrate:local` / `db:migrate:remote` | Миграции D1 локально / на проде |
 | `npm run calibrate` | Калибровка проверок капсулы: настоящие капсулы, испорченные версии и `fixtures/manual/` → таблица «ожидали / получили», рамки — в `scripts/spikes/out/calibration/` |
+| `npm run capsules:collect` | Скачать ~160 капсул чужих игр из Steam в `fixtures/unlabeled/` для разметки (только локально) |
+| `npm run capsules:label` | Страница разметки на [localhost:4400](http://localhost:4400): клавиши 1–4 — нормальная, нечитаемая, лишний текст, низкий контраст; размеченные → `fixtures/manual/` |
 | `npm run spike:steam` | Спайк C: запросы к Steam, качает капсулы в `fixtures/capsules/` (нужно для калибровки) |
 | `npm run spike:ocr` | Спайк B: распознавание названия на капсулах в разных размерах |
 | `npm run spike:steam:cf` | Спайк C с IP Cloudflare (`wrangler dev --remote`, нужен вход) |

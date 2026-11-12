@@ -58,3 +58,5 @@ next-env.d.ts
 
 # модели и ядро распознавания текста — копируются из node_modules перед сборкой
 /public/vendor/
+/fixtures/unlabeled/
+/fixtures/labels.json

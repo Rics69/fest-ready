@@ -26,7 +26,9 @@
     "spike:ocr": "node scripts/spikes/ocr.mjs",
     "spike:steam": "node scripts/spikes/steam.mjs",
     "spike:steam:cf": "wrangler dev --remote -c scripts/spikes/wrangler.spike.jsonc",
-    "calibrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/calibrate.mjs"
+    "calibrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/calibrate.mjs",
+    "capsules:collect": "node scripts/collect-capsules.mjs",
+    "capsules:label": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/label-capsules.mjs"
   },
   "dependencies": {
     "next": "16.4.6",
