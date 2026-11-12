@@ -48,8 +48,14 @@ function line(text: string, bbox: Rect, confidence: number | number[] = 90): Ocr
   };
 }
 
-const MARKETING = { minConfidence: 75, otherConfidence: 0, fuzzyMinLength: 8 };
-const TITLE = { minLineHeight: 0.12, minWordConfidence: 80, minWordLength: 4 };
+const MARKETING = {
+  minConfidence: 75,
+  longWordConfidence: 55,
+  longWordMinLength: 6,
+  otherConfidence: 0,
+  fuzzyMinLength: 8,
+};
+const TITLE = { minLineHeight: 0.12, minWordConfidence: 80, minWordLength: 4, partConfidence: 30 };
 
 describe("масштабирование", () => {
   it("уменьшение усредняет по площади", () => {
@@ -169,6 +175,25 @@ describe("запрещённый текст", () => {
     expect(findMarketingText(lines, MARKETING)).toEqual([]);
   });
 
+  it("«Update», «Out now», «Demo» — только во временной обложке", () => {
+    for (const text of ["UPDATE 1.0 OUT NOW", "DEMO OUT NOW", "PLAYABLE ALPHA", "1.0 RELEASE"]) {
+      const hits = findMarketingText([line(text, { x: 40, y: 140, w: 380, h: 24 })], MARKETING);
+      expect(
+        hits.map((h) => h.kind),
+        text,
+      ).toEqual(["overrideOnly"]);
+    }
+  });
+
+  it("длинному слову хватает уверенности 55%: «UPDATE»(58)", () => {
+    const hits = findMarketingText([line("1982 UPDATE", { x: 300, y: 140, w: 160, h: 16 }, [84, 58])], MARKETING);
+    expect(hits.map((h) => h.match)).toEqual(["update"]);
+  });
+
+  it("одиночный «1%» — мусор распознавания, а не скидка", () => {
+    expect(findMarketingText([line("1%", { x: 300, y: 140, w: 20, h: 16 }, 83)], MARKETING)).toEqual([]);
+  });
+
   it("название игры и мусор с низкой уверенностью — не ошибка", () => {
     const lines = [
       line("Hollow Knight", { x: 20, y: 40, w: 400, h: 80 }),
@@ -182,19 +207,19 @@ describe("где название", () => {
   it("берёт самую крупную строку", () => {
     const title = line("SALTMOTH", { x: 40, y: 50, w: 380, h: 70 });
     const small = line("Build 0.4", { x: 300, y: 140, w: 140, h: 22 });
-    expect(pickTitleRegion([small, title], 462, 174, TITLE)).toEqual(title.bbox);
+    expect(pickTitleRegion([small, title], 462, 174, TITLE)?.rect).toEqual(title.bbox);
   });
 
   it("склеивает название в две строки", () => {
     const top = line("SALT", { x: 120, y: 20, w: 220, h: 60 });
     const bottom = line("MOTH", { x: 115, y: 90, w: 230, h: 60 });
-    expect(pickTitleRegion([top, bottom], 462, 174, TITLE)).toEqual({ x: 115, y: 20, w: 230, h: 130 });
+    expect(pickTitleRegion([top, bottom], 462, 174, TITLE)?.rect).toEqual({ x: 115, y: 20, w: 230, h: 130 });
   });
 
   it("строку с запрещённым текстом названием не считает", () => {
     const promo = line("WISHLIST NOW", { x: 20, y: 20, w: 420, h: 80 });
     const title = line("Dredge", { x: 100, y: 110, w: 200, h: 50 });
-    expect(pickTitleRegion([promo, title], 462, 174, TITLE, [promo.bbox])).toEqual(title.bbox);
+    expect(pickTitleRegion([promo, title], 462, 174, TITLE, [promo.bbox])?.rect).toEqual(title.bbox);
   });
 
   it("мелкий текст — не название", () => {
@@ -204,7 +229,7 @@ describe("где название", () => {
   it("подклеивает куски той же строки, распознанные мусором: HOLLO(92) + IGHT(46)", () => {
     const left = line("HOLLO", { x: 40, y: 54, w: 145, h: 48 }, 92);
     const right = line("IGHT", { x: 304, y: 54, w: 148, h: 56 }, 46);
-    expect(pickTitleRegion([left, right], 462, 174, TITLE)).toEqual({ x: 40, y: 54, w: 412, h: 56 });
+    expect(pickTitleRegion([left, right], 462, 174, TITLE)?.rect).toEqual({ x: 40, y: 54, w: 412, h: 56 });
   });
 
   it("логотип в две строки разного размера: Slay + the + pire", () => {
@@ -212,7 +237,26 @@ describe("где название", () => {
     const the = line("the", { x: 269, y: 58, w: 53, h: 33 }, 96);
     const pire = line("pire", { x: 208, y: 111, w: 111, h: 59 }, 46);
     // «the» в 2,5 раза ниже «Slay» и выступает за рамку на 3 px — не подклеивается, рамка от этого почти не меняется.
-    expect(pickTitleRegion([slay, the, pire], 462, 174, TITLE)).toEqual({ x: 139, y: 8, w: 180, h: 162 });
+    expect(pickTitleRegion([slay, the, pire], 462, 174, TITLE)?.rect).toEqual({ x: 139, y: 8, w: 180, h: 162 });
+  });
+
+  it("высота букв названия в две строки — по словам, а не по всей рамке", () => {
+    const top = line("SALT", { x: 120, y: 20, w: 220, h: 60 });
+    const bottom = line("MOTH", { x: 115, y: 90, w: 230, h: 60 });
+    expect(pickTitleRegion([top, bottom], 462, 174, TITLE)?.letterHeight).toBe(60);
+  });
+
+  it("рамка строки с артом не раздувает рамку названия — берём слова", () => {
+    const title: OcrLine = {
+      text: "ASHIGARU ~",
+      confidence: 60,
+      bbox: { x: 10, y: 0, w: 450, h: 174 }, // строка tesseract захватила весь арт
+      words: [
+        { text: "ASHIGARU", confidence: 93, bbox: { x: 262, y: 10, w: 190, h: 34 } },
+        { text: "~", confidence: 10, bbox: { x: 10, y: 0, w: 200, h: 174 } },
+      ],
+    };
+    expect(pickTitleRegion([title], 462, 174, TITLE)?.rect).toEqual({ x: 262, y: 10, w: 190, h: 34 });
   });
 
   it("стилизованный логотип, распознанный мусором, — не уверены, просим обвести", () => {
@@ -227,11 +271,13 @@ describe("анализ капсулы", () => {
   it("мгновенные проверки и три размера показа", () => {
     const base = analyzeBase(capsule(), file);
     expect(base.previews.map((p) => `${p.width}×${p.height}`)).toEqual(["231×87", "184×69", "120×45"]);
-    expect(base.ocrInputs.map((i) => `${i.image.width}×${i.image.height}@${i.offset.y}`)).toEqual([
-      "924×348@0",
-      "924×348@0",
-      "924×174@0",
-      "924×174@87",
+    expect(base.ocrInputs.map((i) => `${i.image.width}×${i.image.height}@${i.offset.y}/psm${i.psm}`)).toEqual([
+      "924×348@0/psm11",
+      "924×348@0/psm11",
+      "924×174@0/psm11",
+      "924×174@87/psm11",
+      "1386×132@0/psm6",
+      "1386×132@130/psm6",
     ]);
     expect(base.checks.find((c) => c.id === "dimensions")?.level).toBe("ok");
   });
@@ -243,13 +289,13 @@ describe("анализ капсулы", () => {
     expect(levels).toEqual({ extraText: "ok", logoWidth: "ok", contrast: "ok", readability: "ok" });
   });
 
-  it("узкое и тонкое название получает предупреждение и совет", () => {
+  it("узкое и тонкое название: совет по ширине, предупреждение по контрасту, совет по читаемости", () => {
     const narrow: Rect = { x: 150, y: 70, w: 160, h: 30 };
     const img = stripes(solid(462, 174, [20, 24, 40]), narrow, 1, 3, [90, 96, 120]);
     const base = analyzeBase(img, file);
     const text = analyzeText(base, [], narrow);
     const levels = Object.fromEntries(text.checks.map((c) => [c.id, c.level]));
-    expect(levels.logoWidth).toBe("warning");
+    expect(levels.logoWidth).toBe("advice");
     expect(levels.contrast).toBe("warning");
     expect(levels.readability).toBe("advice");
   });

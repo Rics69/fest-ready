@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import sharp from "sharp";
 import { createWorker } from "tesseract.js";
-import { analyzeBase, analyzeText, OCR_SCALE } from "../lib/capsule-engine/analyze.ts";
+import { analyzeBase, analyzeText } from "../lib/capsule-engine/analyze.ts";
 import { linesFromTesseract } from "../lib/capsule-engine/text.ts";
 import { CHECK_RULES } from "../data/check-rules.ts";
 
@@ -145,14 +145,15 @@ for (const c of cases) {
 
   const started = performance.now();
   const lines = [];
-  for (const { image: input, offset } of base.ocrInputs) {
+  for (const { image: input, offset, scale, psm } of base.ocrInputs) {
     const ocrPng = await sharp(Buffer.from(input.data), {
       raw: { width: input.width, height: input.height, channels: 4 },
     })
       .png()
       .toBuffer();
+    await worker.setParameters({ tessedit_pageseg_mode: psm });
     const { data: page } = await worker.recognize(ocrPng, {}, { blocks: true });
-    lines.push(...linesFromTesseract(page, 1 / OCR_SCALE, offset));
+    lines.push(...linesFromTesseract(page, 1 / scale, offset));
   }
   const ocrMs = Math.round(performance.now() - started);
   const text = analyzeText(base, lines, c.region);
@@ -164,12 +165,9 @@ for (const c of cases) {
   const fired = (id) => by[id] && by[id].level !== "ok" && by[id].code !== "notFound";
   const askedOutline = by.readability?.code === "notFound";
   const falseAlarm = c.expect === "ok" && all.some((r) => r.level === "error" || r.level === "warning");
-  const pass =
-    c.expect === "ok"
-      ? !all.some((r) => r.level === "error" || r.level === "warning")
-      : c.expect === "readability"
-        ? fired("readability") || fired("logoWidth")
-        : fired(c.expect);
+  const pass = c.expect === "ok" ? !all.some((r) => r.level === "error" || r.level === "warning") : fired(c.expect);
+  // Совет о читаемости на капсуле, которую человек счёл нормальной, — шум, даже если не тревога.
+  const adviceNoise = c.expect === "ok" && fired("readability");
 
   rows.push({
     case: c.name,
@@ -177,11 +175,14 @@ for (const c of cases) {
     expect: c.expect,
     outline: askedOutline,
     falseAlarm,
+    adviceNoise,
     pass: pass ? "✓" : "✗",
     problems: problems.join(", ") || "—",
     region: text.region ? `${Math.round(text.region.w)}×${Math.round(text.region.h)}` : "нет",
     contrast: by.contrast?.params?.ratio ?? "",
     stroke120: by.readability?.params?.stroke ?? "",
+    px120: by.readability?.params?.px ?? "",
+    extra: by.extraText?.params?.text ?? "",
     edges: by.details?.params?.percent ?? "",
     ocrMs,
   });
@@ -204,7 +205,7 @@ for (const c of cases) {
 }
 await worker.terminate();
 
-const columns = ["case", "expect", "pass", "problems", "region", "contrast", "stroke120", "edges", "ocrMs"];
+const columns = ["case", "expect", "pass", "problems", "region", "contrast", "stroke120", "px120", "extra"];
 const builtin = rows.filter((r) => r.group === "встроенные");
 const manual = rows.filter((r) => r.group === "основатель");
 console.log("Встроенный набор:");
@@ -229,6 +230,7 @@ for (const group of ["встроенные", "основатель"]) {
       "как ожидали": set.filter((r) => r.pass === "✓").length,
       "попросили обвести": set.filter((r) => r.outline).length,
       "ложные тревоги": expect === "ok" ? set.filter((r) => r.falseAlarm).length : "",
+      "лишние советы": expect === "ok" ? set.filter((r) => r.adviceNoise).length : "",
     });
   }
 }

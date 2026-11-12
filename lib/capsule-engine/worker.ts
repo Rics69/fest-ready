@@ -61,7 +61,7 @@ scope.onmessage = async (event) => {
       const base = analyzeBase(image, { head, size: message.file.size });
       current = { id: message.id, base };
       const ocrImages = await Promise.all(
-        base.ocrInputs.map(async (input) => ({ blob: await toPng(input.image), offset: input.offset })),
+        base.ocrInputs.map(async ({ image, offset, scale, psm }) => ({ blob: await toPng(image), offset, scale, psm })),
       );
       scope.postMessage({
         type: "base",

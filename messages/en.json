@@ -72,7 +72,8 @@
       "extraText": {
         "title": "Extra text",
         "ok": "No review scores, awards, discounts or calls to action found",
-        "found": "On the capsule: “{text}”. Valve bans review scores, awards, discounts and calls to action on capsules — this one will be rejected"
+        "found": "On the capsule: “{text}”. Valve bans review scores, awards, discounts and calls to action on capsules — this one will be rejected",
+        "override": "On the capsule: “{text}”. Valve only allows text like this on a temporary Artwork Override (up to 14 days, localized into every language of the game). On the base capsule it will be rejected"
       },
       "logoWidth": {
         "title": "Title size",

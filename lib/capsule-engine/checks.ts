@@ -60,24 +60,31 @@ export function checkDetails(preview120: RgbaImage): CheckResult {
   return { id: "details", level: "ok", code: "ok", params: { percent } };
 }
 
+/**
+ * Лишний текст: запрещённый (оценки, награды, скидки, призывы) — ошибка; разрешённый только во временной обложке
+ * («Update», «Out now», «Demo») — предупреждение: на основной капсуле его тоже отклонят.
+ */
 export function checkExtraText(hits: MarketingHit[]): CheckResult {
   if (hits.length === 0) return { id: "extraText", level: "ok", code: "ok" };
+  const banned = hits.filter((h) => h.kind === "banned");
+  const shown = banned.length ? banned : hits;
   return {
     id: "extraText",
-    level: "error",
-    code: "found",
-    params: { text: hits.map((h) => h.text).join(" · ") },
-    region: hits[0].bbox,
+    level: banned.length ? "error" : "warning",
+    code: banned.length ? "found" : "override",
+    params: { text: shown.map((h) => h.text).join(" · ") },
+    region: shown[0].bbox,
   };
 }
 
+/** Ширина логотипа — совет по рекомендации Steamworks; на читаемость сильнее влияет высота букв (readability). */
 export function checkLogoWidth(region: Rect, workWidth: number, workHeight: number): CheckResult {
   const share = region.w / workWidth;
   const tall = region.h / workHeight >= CHECK_RULES.logoTallHeightMin && share >= CHECK_RULES.logoTallWidthMin;
   const percent = Math.round(share * 100);
   const min = Math.round(CHECK_RULES.logoWidthMin * 100);
   if (share < CHECK_RULES.logoWidthMin && !tall) {
-    return { id: "logoWidth", level: "warning", code: "narrow", params: { percent, min }, region };
+    return { id: "logoWidth", level: "advice", code: "narrow", params: { percent, min }, region };
   }
   return { id: "logoWidth", level: "ok", code: "ok", params: { percent } };
 }
@@ -104,7 +111,13 @@ export function checkContrast(work: RgbaImage, region: Rect): CheckResult {
  * Читаемость в 120×45 — только совет (спайк B: OCR тут врёт). Смотрим, что остаётся от названия в самом
  * мелком показе: контраст букв и фона, толщину штриха и высоту надписи.
  */
-export function checkReadability(preview120: RgbaImage, region: Rect, workWidth: number): CheckResult {
+export function checkReadability(
+  preview120: RgbaImage,
+  region: Rect,
+  workWidth: number,
+  /** Высота букв по словам OCR (у названия в две строки рамка выше букв). Нет — берём высоту рамки. */
+  letterHeight?: number,
+): CheckResult {
   const scale = preview120.width / workWidth;
   const rect = clampRect(scaleRect(region, scale), preview120.width, preview120.height);
   const rules = CHECK_RULES.readability;
@@ -113,8 +126,9 @@ export function checkReadability(preview120: RgbaImage, region: Rect, workWidth:
   const [lo, hi] = CHECK_RULES.contrastPercentiles;
   const ratio = percentileContrast(lum, preview120.width, rect, lo, hi);
   const stroke = medianStrokeWidth(twoTone(lum, preview120.width, rect).ink, rect.w, rect.h);
-  const params = { ratio: round1(ratio), stroke: round1(stroke), px: rect.h };
-  if (rect.h < rules.titleHeightMinPx) return { id: "readability", level: "advice", code: "small", params, region };
+  const px = Math.round((letterHeight ?? region.h) * scale);
+  const params = { ratio: round1(ratio), stroke: round1(stroke), px };
+  if (px < rules.titleHeightMinPx) return { id: "readability", level: "advice", code: "small", params, region };
   if (ratio < rules.contrastMin) return { id: "readability", level: "advice", code: "blurry", params, region };
   if (stroke < rules.strokeMinPx) return { id: "readability", level: "advice", code: "thin", params, region };
   return { id: "readability", level: "ok", code: "ok", params };

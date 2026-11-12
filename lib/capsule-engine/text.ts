@@ -1,6 +1,6 @@
 import { MARKETING_TEXT } from "../../data/check-rules.ts";
 import { scaleRect, unionRects } from "./image.ts";
-import type { OcrLine, Rect } from "./types.ts";
+import type { OcrLine, OcrWord, Rect } from "./types.ts";
 
 /** Минимальная форма ответа tesseract.js (blocks → paragraphs → lines → words), чтобы не тянуть его типы. */
 type TessBbox = { x0: number; y0: number; x1: number; y1: number };
@@ -70,26 +70,87 @@ function similar(token: string, target: string, fuzzyMinLength: number): boolean
   return levenshtein(token, target) <= 1;
 }
 
-export type MarketingHit = { match: string; text: string; bbox: Rect };
+/** banned — ошибка на любой капсуле; overrideOnly — можно только во временной обложке. */
+export type MarketingKind = keyof typeof MARKETING_TEXT;
+export type MarketingHit = { kind: MarketingKind; match: string; text: string; bbox: Rect };
 
 export type MarketingOptions = {
-  /** Хотя бы одно слово совпадения должно быть распознано с такой уверенностью. */
+  /** Хотя бы одно слово совпадения должно быть распознано с такой уверенностью… */
   minConfidence: number;
+  /** …или длинное слово (от longWordMinLength букв) — с такой. */
+  longWordConfidence?: number;
+  longWordMinLength?: number;
   /** Слова ниже этой уверенности не учитываем вовсе. */
   otherConfidence?: number;
   fuzzyMinLength?: number;
 };
 
 type Token = { text: string; word: number; start: number };
+type Found = { match: string; from: number; to: number };
+
+/** Ищет в строке совпадение со словарём одной группы: фразы, затем слова, затем шаблоны. */
+function matchGroup(
+  group: (typeof MARKETING_TEXT)[MarketingKind],
+  tokens: Token[],
+  joined: string,
+  fuzzyMinLength: number,
+): Found | null {
+  for (const phrase of group.phrases) {
+    const parts = phrase.split(" ");
+    // Варианты фразы: целиком и — для фраз от четырёх слов — без одного слова:
+    // tesseract теряет короткие слова («GAME THE YEAR» вместо «GAME OF THE YEAR»).
+    // У фраз короче остаток слишком общий: «free to play» без «free» — это «to play» из названия игры.
+    const variants = [parts, ...(parts.length >= 4 ? parts.map((_, skip) => parts.filter((__, j) => j !== skip)) : [])];
+    for (const variant of variants) {
+      const k = variant.length;
+      const target = variant.join(" ");
+      const allowed = target.length >= 10 ? 2 : target.length >= 6 ? 1 : 0;
+      for (let i = 0; i + k <= tokens.length; i++) {
+        const window = tokens
+          .slice(i, i + k)
+          .map((t) => t.text)
+          .join(" ");
+        if (window === target || (allowed > 0 && levenshtein(window, target) <= allowed)) {
+          return { match: phrase, from: i, to: i + k - 1 };
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < tokens.length; i++) {
+    const word = group.words.find((w) => similar(tokens[i].text, w, fuzzyMinLength));
+    if (word) return { match: word, from: i, to: i };
+  }
+
+  for (const pattern of group.patterns) {
+    const m = pattern.exec(joined);
+    if (!m) continue;
+    const at = m.index;
+    const end = at + m[0].length;
+    const from = tokens.findIndex((t) => t.start + t.text.length > at);
+    let to = from;
+    while (to + 1 < tokens.length && tokens[to + 1].start < end) to++;
+    return { match: m[0].trim(), from, to };
+  }
+  return null;
+}
 
 /**
- * Запрещённый текст: слова и фразы из словаря и шаблоны скидок и оценок.
- * Совпадение засчитываем, только если хотя бы одно его слово распознано уверенно, —
- * так мусор от стилизованных логотипов не превращается в ложные ошибки.
+ * Лишний текст: слова и фразы из словаря и шаблоны скидок и оценок, сначала запрещённые, потом «только во временной
+ * обложке». Совпадение засчитываем, только если хотя бы одно его слово распознано уверенно (длинному слову хватает
+ * меньшей уверенности), — так мусор от стилизованных логотипов не превращается в ложные ошибки.
  */
 export function findMarketingText(lines: OcrLine[], options: MarketingOptions): MarketingHit[] {
-  const { minConfidence, otherConfidence = 0, fuzzyMinLength = 8 } = options;
+  const {
+    minConfidence,
+    longWordConfidence = minConfidence,
+    longWordMinLength = Infinity,
+    otherConfidence = 0,
+    fuzzyMinLength = 8,
+  } = options;
   const hits: MarketingHit[] = [];
+  const trusted = (w: OcrWord) =>
+    w.confidence >= minConfidence || (alnum(w.text) >= longWordMinLength && w.confidence >= longWordConfidence);
 
   for (const line of lines) {
     const words = line.words.filter((w) => w.confidence >= otherConfidence);
@@ -105,59 +166,17 @@ export function findMarketingText(lines: OcrLine[], options: MarketingOptions): 
     });
     if (tokens.length === 0) continue;
 
-    let found: { match: string; from: number; to: number } | null = null;
-
-    for (const phrase of MARKETING_TEXT.phrases) {
-      const parts = phrase.split(" ");
-      // Варианты фразы: целиком и — для фраз от четырёх слов — без одного слова:
-      // tesseract теряет короткие слова («GAME THE YEAR» вместо «GAME OF THE YEAR»).
-      // У фраз короче остаток слишком общий: «free to play» без «free» — это «to play» из названия игры.
-      const variants = [
-        parts,
-        ...(parts.length >= 4 ? parts.map((_, skip) => parts.filter((__, j) => j !== skip)) : []),
-      ];
-      for (const variant of variants) {
-        const k = variant.length;
-        const target = variant.join(" ");
-        const allowed = target.length >= 10 ? 2 : target.length >= 6 ? 1 : 0;
-        for (let i = 0; !found && i + k <= tokens.length; i++) {
-          const window = tokens
-            .slice(i, i + k)
-            .map((t) => t.text)
-            .join(" ");
-          if (window === target || (allowed > 0 && levenshtein(window, target) <= allowed)) {
-            found = { match: phrase, from: i, to: i + k - 1 };
-          }
-        }
-        if (found) break;
-      }
-      if (found) break;
+    for (const kind of ["banned", "overrideOnly"] as const) {
+      const found = matchGroup(MARKETING_TEXT[kind], tokens, joined, fuzzyMinLength);
+      if (!found) continue;
+      const matched = [...new Set(tokens.slice(found.from, found.to + 1).map((t) => t.word))].map((i) => words[i]);
+      if (!matched.some(trusted)) continue;
+      const bbox = unionRects(matched.map((w) => w.bbox))!;
+      // Несколько проходов распознавания находят одну и ту же надпись — оставляем одну (запрещённую, если есть).
+      if (hits.some((h) => intersects(h.bbox, bbox))) break;
+      hits.push({ kind, match: found.match, text: matched.map((w) => w.text).join(" "), bbox });
+      break;
     }
-
-    for (let i = 0; !found && i < tokens.length; i++) {
-      const word = MARKETING_TEXT.words.find((w) => similar(tokens[i].text, w, fuzzyMinLength));
-      if (word) found = { match: word, from: i, to: i };
-    }
-
-    for (const pattern of MARKETING_TEXT.patterns) {
-      if (found) break;
-      const m = pattern.exec(joined);
-      if (!m) continue;
-      const at = m.index;
-      const end = at + m[0].length;
-      const from = tokens.findIndex((t) => t.start + t.text.length > at);
-      let to = from;
-      while (to + 1 < tokens.length && tokens[to + 1].start < end) to++;
-      found = { match: m[0].trim(), from, to };
-    }
-
-    if (!found) continue;
-    const matched = [...new Set(tokens.slice(found.from, found.to + 1).map((t) => t.word))].map((i) => words[i]);
-    if (Math.max(...matched.map((w) => w.confidence)) < minConfidence) continue;
-    const bbox = unionRects(matched.map((w) => w.bbox))!;
-    // Два прохода распознавания находят одну и ту же надпись — оставляем одну.
-    if (hits.some((h) => intersects(h.bbox, bbox))) continue;
-    hits.push({ match: found.match, text: matched.map((w) => w.text).join(" "), bbox });
   }
   return hits;
 }
@@ -172,39 +191,55 @@ function intersects(a: Rect, b: Rect): boolean {
 
 const alnum = (s: string) => (s.match(/[a-zа-яё0-9]/gi) ?? []).length;
 
+export type TitleRegion = {
+  rect: Rect;
+  /** Медианная высота букв названия — по ней судим, не мелкое ли оно в 120×45 (у названия в две строки рамка выше букв). */
+  letterHeight: number;
+};
+
+export type TitleOptions = {
+  minLineHeight: number;
+  minWordConfidence: number;
+  minWordLength: number;
+  partConfidence?: number;
+};
+
 /**
- * Где на капсуле название. Опора — самая крупная строка, в которой хотя бы одно слово распознано уверенно
- * (название — самый крупный текст). К ней подклеиваем куски той же строки и строки над и под ней
- * похожего размера, даже если их распознало мусором: «HOLLO(92)» + «IGHT(46)», «Slay» + «the» + «pire».
- * Строки с запрещённым текстом названием не считаем. null — не нашли или не уверены: просим обвести вручную.
+ * Где на капсуле название. Собираем из слов, а не из строк: рамка строки tesseract захватывает арт вокруг.
+ * Опора — самое крупное слово от 4 букв, распознанное уверенно (название — самый крупный текст). К нему подклеиваем
+ * слова той же строки и строк над и под ним похожего размера, даже если их распознало плохо, но не мусором:
+ * «HOLLO(92)» + «IGHT(46)», «Slay» + «pire». Запрещённый текст названием не считаем.
+ * null — не нашли или не уверены: просим обвести вручную.
  */
 export function pickTitleRegion(
   lines: OcrLine[],
   width: number,
   height: number,
-  options: { minLineHeight: number; minWordConfidence: number; minWordLength: number },
+  options: TitleOptions,
   exclude: Rect[] = [],
-): Rect | null {
-  const usable = lines.filter((l) => l.bbox.w > 0 && l.bbox.h > 0 && !exclude.some((e) => intersects(e, l.bbox)));
-  const anchors = usable.filter(
-    (l) =>
-      l.bbox.h >= options.minLineHeight * height &&
-      l.bbox.w >= 0.08 * width &&
-      // Стилизованный логотип tesseract «видит» мусором с низкой уверенностью — такой рамке не верим.
-      l.words.some((w) => w.confidence >= options.minWordConfidence && alnum(w.text) >= options.minWordLength),
+): TitleRegion | null {
+  const words = lines
+    .flatMap((l) => l.words)
+    .filter((w) => w.bbox.w > 0 && w.bbox.h > 0 && !exclude.some((e) => intersects(e, w.bbox)));
+  const anchors = words.filter(
+    (w) =>
+      w.bbox.h >= options.minLineHeight * height &&
+      w.confidence >= options.minWordConfidence &&
+      alnum(w.text) >= options.minWordLength,
   );
   if (anchors.length === 0) return null;
   const anchor = anchors.reduce((a, b) => (b.bbox.w * b.bbox.h > a.bbox.w * a.bbox.h ? b : a));
   const h = anchor.bbox.h;
+  const parts = words.filter((w) => w.confidence >= (options.partConfidence ?? 30) && alnum(w.text) >= 2);
   let region = anchor.bbox;
-  const taken = new Set<OcrLine>([anchor]);
+  const taken = new Set<OcrWord>([anchor]);
 
   let grew = true;
   while (grew) {
     grew = false;
-    for (const line of usable) {
-      if (taken.has(line)) continue;
-      const r = line.bbox;
+    for (const word of parts) {
+      if (taken.has(word)) continue;
+      const r = word.bbox;
       const ratio = r.h / h;
       const verticalOverlap = Math.min(r.y + r.h, region.y + region.h) - Math.max(r.y, region.y);
       const horizontalGap = r.x > region.x + region.w ? r.x - (region.x + region.w) : region.x - (r.x + r.w);
@@ -216,11 +251,12 @@ export function pickTitleRegion(
       const inside =
         r.x >= region.x && r.y >= region.y && r.x + r.w <= region.x + region.w && r.y + r.h <= region.y + region.h;
       if (sameRow || stacked || inside) {
-        taken.add(line);
+        taken.add(word);
         region = unionRects([region, r])!;
         grew = true;
       }
     }
   }
-  return region;
+  const heights = [...taken].map((w) => w.bbox.h).sort((a, b) => a - b);
+  return { rect: region, letterHeight: heights[Math.floor(heights.length / 2)] };
 }

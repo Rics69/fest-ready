@@ -20,7 +20,7 @@ export type WorkerResponse =
       previews: Pixels[];
       checks: CheckResult[];
       /** PNG для распознавания текста и где каждый кусок лежит на капсуле. */
-      ocrImages: { blob: Blob; offset: { x: number; y: number } }[];
+      ocrImages: { blob: Blob; offset: { x: number; y: number }; scale: number; psm: string }[];
       ms: number;
     }
   | { type: "text"; id: number; region: Rect | null; checks: CheckResult[] }

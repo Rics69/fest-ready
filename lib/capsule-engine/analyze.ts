@@ -23,7 +23,9 @@ const SMALL = getAsset("small");
  *   - цветом и в сером с растянутым контрастом: цветной не видит «-50%» на красной плашке,
  *     серый — «GAME OF THE YEAR» на тёмной полосе;
  *   - отдельно верхняя и нижняя половины: маркетинговые надписи почти всегда стоят полосой сверху или снизу,
- *     а на половине tesseract не путает их с артом (в браузере «WISHLIST NOW» терялся на целой капсуле).
+ *     а на половине tesseract не путает их с артом (в браузере «WISHLIST NOW» терялся на целой капсуле);
+ *   - тонкие полосы у краёв (по 25%), втрое крупнее и в режиме «блок текста»: так читается
+ *     «EARLY ACCESS AVAILABLE NOW» на оранжевой плашке, которую не видят остальные проходы.
  * Калибровка — docs/decisions.md.
  */
 export const OCR_SCALE = 2;
@@ -32,6 +34,10 @@ export type OcrInput = {
   image: RgbaImage;
   /** Где этот кусок лежит на капсуле 462×174 — чтобы перевести координаты слов обратно. */
   offset: { x: number; y: number };
+  /** Во сколько раз кусок увеличен. */
+  scale: number;
+  /** Режим разметки страницы tesseract: 11 — разрозненный текст, 6 — один блок текста. */
+  psm: "11" | "6";
 };
 
 export type BaseAnalysis = {
@@ -51,15 +57,20 @@ export function analyzeBase(image: RgbaImage, file: FileInfo): BaseAnalysis {
   const previews = SMALL_CAPSULE_PREVIEWS.map(([w, h]) => resize(work, w, h));
   const upscaled = resize(work, SMALL.w * OCR_SCALE, SMALL.h * OCR_SCALE);
   const half = Math.round(SMALL.h / 2);
-  const band = (y: number, h: number): OcrInput => ({
-    image: grayStretch(resize(crop(work, 0, y, SMALL.w, h), SMALL.w * OCR_SCALE, h * OCR_SCALE)),
+  const band = (y: number, h: number, scale: number, psm: OcrInput["psm"]): OcrInput => ({
+    image: grayStretch(resize(crop(work, 0, y, SMALL.w, h), SMALL.w * scale, h * scale)),
     offset: { x: 0, y },
+    scale,
+    psm,
   });
+  const strip = Math.round(SMALL.h / 4);
   const ocrInputs: OcrInput[] = [
-    { image: upscaled, offset: { x: 0, y: 0 } },
-    { image: grayStretch(upscaled), offset: { x: 0, y: 0 } },
-    band(0, half),
-    band(SMALL.h - half, half),
+    { image: upscaled, offset: { x: 0, y: 0 }, scale: OCR_SCALE, psm: "11" },
+    { image: grayStretch(upscaled), offset: { x: 0, y: 0 }, scale: OCR_SCALE, psm: "11" },
+    band(0, half, OCR_SCALE, "11"),
+    band(SMALL.h - half, half, OCR_SCALE, "11"),
+    band(0, strip, 3, "6"),
+    band(SMALL.h - strip, strip, 3, "6"),
   ];
   const preview120 = previews[previews.length - 1];
   return {
@@ -95,22 +106,26 @@ export function analyzeText(
   const { ocr } = CHECK_RULES;
   const hits = findMarketingText(lines, {
     minConfidence: ocr.minWordConfidence,
+    longWordConfidence: ocr.longWordConfidence,
+    longWordMinLength: ocr.longWordMinLength,
     otherConfidence: ocr.phraseWordConfidence,
     fuzzyMinLength: ocr.fuzzyMinLength,
   });
-  const region =
-    manualRegion ??
-    pickTitleRegion(
-      lines,
-      work.width,
-      work.height,
-      {
-        minLineHeight: ocr.titleLineMinHeight,
-        minWordConfidence: ocr.titleWordConfidence,
-        minWordLength: ocr.titleWordMinLength,
-      },
-      hits.map((h) => h.bbox),
-    );
+  const found = manualRegion
+    ? null
+    : pickTitleRegion(
+        lines,
+        work.width,
+        work.height,
+        {
+          minLineHeight: ocr.titleLineMinHeight,
+          minWordConfidence: ocr.titleWordConfidence,
+          minWordLength: ocr.titleWordMinLength,
+          partConfidence: ocr.titlePartConfidence,
+        },
+        hits.map((h) => h.bbox),
+      );
+  const region = manualRegion ?? found?.rect ?? null;
   const checks: CheckResult[] = [checkExtraText(hits)];
   if (!region) {
     checks.push({ id: "readability", level: "advice", code: "notFound" });
@@ -120,7 +135,7 @@ export function analyzeText(
   checks.push(
     checkLogoWidth(region, work.width, work.height),
     checkContrast(work, region),
-    checkReadability(preview120, region, work.width),
+    checkReadability(preview120, region, work.width, found?.letterHeight),
   );
   return { region, checks };
 }
